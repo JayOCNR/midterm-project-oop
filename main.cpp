@@ -3,6 +3,7 @@
 #include <string>
 #include <cctype>
 #include <vector>
+#include <iomanip>
 
 void SystemClear()
 {
@@ -11,7 +12,7 @@ void SystemClear()
 #else
     system("clear");
 #endif
-};
+}
 
 void SystemPause()
 {
@@ -21,6 +22,7 @@ void SystemPause()
     std::cin.get();
 #endif
 }
+
 void ConverttoUpper(std::string &str)
 {
     for (char &c : str)
@@ -31,36 +33,34 @@ void ConverttoUpper(std::string &str)
         }
     }
 }
-// Check if input is number, check decimal, if empty
+
 bool isValidNumericString(const std::string &input)
 {
-    bool Decimal = false;
+    bool decimalFound = false;
 
-    for (const char ch : input)
+    for (char c : input)
     {
-        if (ch == '.')
+        if (c == '.')
         {
-            if (Decimal)
-            {
-                return false;
-            }
-            Decimal = true;
+            if (decimalFound) 
+                return false; // multiple decimals found
+            decimalFound = true;
         }
-        else if (!isdigit(ch))
+        else if (!std::isdigit(c))
         {
-            return false;
+            return false; // invalid character found
         }
     }
+
     return !input.empty();
 }
 
-// Amount input, checker
-void getValidAmount(double &amount)
+void getValidDoubleAmount(double &amount)
 {
     std::string input;
-    bool Valid = false;
+    bool valid = false;
 
-    while (!Valid)
+    while (!valid)
     {
         std::cout << "\nEnter amount: ";
         std::cin >> input;
@@ -74,7 +74,7 @@ void getValidAmount(double &amount)
             }
             else
             {
-                Valid = true;
+                valid = true;
             }
         }
         else
@@ -83,7 +83,37 @@ void getValidAmount(double &amount)
         }
     }
 }
-// Class Item
+
+// Function to get a valid integer amount
+void getValidIntAmount(int &amount)
+{
+    std::string input;
+    bool valid = false;
+
+    while (!valid)
+    {
+        std::cout << "\nEnter quantity: ";
+        std::cin >> input;
+
+        if (isValidNumericString(input))
+        {
+            amount = std::stoi(input); // Use stoi for integers
+            if (amount < 0)
+            {
+                std::cout << "Invalid input! Quantity cannot be negative." << std::endl;
+            }
+            else
+            {
+                valid = true;
+            }
+        }
+        else
+        {
+            std::cout << "Invalid input! Please enter a valid positive integer quantity." << std::endl;
+        }
+    }
+}
+
 class Item
 {
 private:
@@ -94,12 +124,9 @@ private:
     double price;
 
 public:
-    // Constructor
     explicit Item(const std::string &c, const std::string &id, const std::string &n, int q, double p)
         : category(c), itemID(id), name(n), quantity(q), price(p) {}
 
-    // Setter
-    //  Setters
     void setItemID(const std::string &id) { itemID = id; }
     void setName(const std::string &itemName) { name = itemName; }
     void setQuantity(int qty)
@@ -126,7 +153,6 @@ public:
     }
     void setCategory(const std::string &itemCategory) { category = itemCategory; }
 
-    // Getter
     std::string getItemID() const { return itemID; }
     std::string getName() const { return name; }
     int getQuantity() const { return quantity; }
@@ -137,7 +163,7 @@ public:
 class Inventory
 {
 protected:
-    std::vector<Item> vectoritems;
+    std::vector<Item> vectorItems;
 
 public:
     virtual void addInventoryItem() = 0;
@@ -155,56 +181,50 @@ class InventorySystem : public Inventory
 public:
     void addInventoryItem() override
     {
-        std::string category;
-        std::string itemID;
-        std::string name;
+        std::string category, itemID, name;
         int quantity;
         double price;
 
         const std::string validCategories[] = {"CLOTHING", "ELECTRONICS", "ENTERTAINMENT"};
 
-        bool isValidCategory = false; 
+        bool isValidCategory = false;
 
-       
         while (!isValidCategory)
         {
             std::cout << "Input Category of the item (Clothing, Electronics, Entertainment): ";
             std::cin >> category;
-            ConverttoUpper(category); 
-
+            ConverttoUpper(category);
 
             for (const std::string &validCategory : validCategories)
             {
                 if (category == validCategory)
                 {
-                    isValidCategory = true; 
-                    break;                 
+                    isValidCategory = true;
+                    break;
                 }
             }
 
-           
             if (!isValidCategory)
             {
-                std::cout << "ERROR: Invalid category. Please enter a valid category (Clothing, Electronics, Entertainment).\n";
+                std::cout << "ERROR: Invalid category. Please enter a valid category.\n";
             }
         }
 
-       
+        std::cin.clear();
         std::cout << "Enter Item ID: ";
+        std::cin.ignore();
         std::cin >> itemID;
+        ConverttoUpper(itemID);
 
         std::cout << "Enter Name: ";
-        std::cin >> name;
+        std::cin.ignore();
+        getline(std::cin, name);
 
-        std::cout << "Enter Quantity: ";
-        std::cin >> quantity;
+        getValidIntAmount(quantity);
+        getValidDoubleAmount(price);
 
-        std::cout << "Enter Price: ";
-        std::cin >> price;
-
-        
         Item newItem(category, itemID, name, quantity, price);
-        vectoritems.push_back(newItem); 
+        vectorItems.push_back(newItem);
 
         std::cout << "Item added successfully!\n";
     }
@@ -214,25 +234,22 @@ public:
         std::string itemID;
         bool itemFound = false;
 
-        
-        if (vectoritems.empty())
+        if (vectorItems.empty())
         {
             std::cout << "No items available in the inventory.\n";
-            return; 
+            return;
         }
 
-      
         std::cout << "Enter the Item ID to update: ";
         std::cin >> itemID;
+        ConverttoUpper(itemID);
 
-    
-        for (auto &item : vectoritems) 
+        for (auto &item : vectorItems)
         {
             if (item.getItemID() == itemID)
             {
-                itemFound = true; 
+                itemFound = true;
 
-           
                 int choice;
                 do
                 {
@@ -245,9 +262,9 @@ public:
 
                     if (choice == 1)
                     {
-                        double newPrice;
+                        int newPrice;
                         std::cout << "Enter new price: ";
-                        getValidAmount(newPrice);
+                        getValidIntAmount(newPrice); // Using getValidAmount for price
                         item.setPrice(newPrice);
                         std::cout << "Price updated successfully.\n";
                     }
@@ -255,7 +272,7 @@ public:
                     {
                         int newQuantity;
                         std::cout << "Enter new quantity: ";
-                        std::cin >> newQuantity;
+                        getValidIntAmount(newQuantity); // Using getValidAmount for quantity
                         item.setQuantity(newQuantity);
                         std::cout << "Quantity updated successfully.\n";
                     }
@@ -267,13 +284,12 @@ public:
                     {
                         std::cout << "Invalid choice. Please try again.\n";
                     }
-                } while (choice != 3); 
+                } while (choice != 3);
 
-                break; 
+                break;
             }
         }
 
-      
         if (!itemFound)
         {
             std::cout << "ERROR: Item with ID " << itemID << " not found in the inventory.\n";
@@ -282,101 +298,268 @@ public:
 
     void removeInventoryItem() override
     {
+        if (vectorItems.empty())
+        {
+            std::cout << "No items in the inventory" << std::endl;
+            return;
+        }
+
+        bool itemExists = false;
+        std::string itemID;
+        std::cout << "Input product ID that you want to remove: ";
+        std::cin >> itemID;
+        ConverttoUpper(itemID);
+
+        for (auto it = vectorItems.begin(); it != vectorItems.end();)
+        {
+            if (it->getItemID() == itemID)
+            {
+                std::cout << "Item " << it->getName() << " with ID " << it->getItemID() << " has been removed." << std::endl;
+                it = vectorItems.erase(it);
+                itemExists = true;
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        if (!itemExists)
+        {
+            std::cout << "ID " << itemID << " NOT FOUND" << std::endl;
+        }
     }
-    void displayCategoryItems() override
-    {
-    }
+
     void displayAllInventoryItems() override
     {
+        if (vectorItems.empty())
+        {
+            std::cout << "\n\nNo items to display.\n";
+            return;
+        }
+        std::cout << "------------------------------------------------------------\n";
+        std::cout << std::left << std::setw(10) << "ID"
+                  << std::left << std::setw(40) << "Name"
+                  << std::right << std::setw(10) << "Quantity"
+                  << std::right << std::setw(10) << "Price"
+                  << std::right << std::setw(20) << "Category" << "\n";
+        std::cout << "------------------------------------------------------------\n";
+
+        for (const auto &item : vectorItems)
+        {
+            std::cout << std::left << std::setw(10) << item.getItemID()
+                      << std::left << std::setw(40) << item.getName()
+                      << std::right << std::setw(10) << item.getQuantity()
+                      << std::right << std::setw(10) << item.getPrice()
+                      << std::right << std::setw(20) << item.getCategory()
+                      << "\n";
+        }
+        std::cout << "------------------------------------------------------------\n";
     }
+
+    void displayCategoryItems() override
+    {
+        std::string category;
+        std::cout << "Input Category to Display (Clothing, Electronics, Entertainment): ";
+        std::cin >> category;
+        ConverttoUpper(category);
+
+        bool found = false;
+        std::cout << "Items in category " << category << ":\n";
+
+        for (const auto &item : vectorItems)
+        {
+            if (item.getCategory() == category)
+            {
+                if (!found)
+                {
+                    std::cout << "------------------------------------------------------------\n";
+                    std::cout << std::left << std::setw(10) << "ID"
+                              << std::left << std::setw(40) << "Name"
+                              << std::right << std::setw(10) << "Quantity"
+                              << std::right << std::setw(10) << "Price" << "\n";
+                    std::cout << "------------------------------------------------------------\n";
+                    found = true;
+                }
+
+                std::cout << std::left << std::setw(10) << item.getItemID()
+                          << std::left << std::setw(40) << item.getName()
+                          << std::right << std::setw(10) << item.getQuantity()
+                          << std::right << std::setw(10) << item.getPrice()
+                          << "\n";
+            }
+        }
+
+        if (!found)
+        {
+            std::cout << "No items found in the specified category.\n";
+        }
+        std::cout << "------------------------------------------------------------\n";
+    }
+
     void searchInventoryItem() override
     {
+        std::string itemID;
+        std::cout << "Enter Item ID to search: ";
+        std::cin >> itemID;
+        ConverttoUpper(itemID);
+
+        for (const auto &item : vectorItems)
+        {
+            if (item.getItemID() == itemID)
+            {
+                std::cout << "Item found:\n";
+                std::cout << "Item ID: " << item.getItemID() << "\n";
+                std::cout << "Name: " << item.getName() << "\n";
+                std::cout << "Quantity: " << item.getQuantity() << "\n";
+                std::cout << "Price: " << item.getPrice() << "\n";
+                std::cout << "Category: " << item.getCategory() << "\n";
+                return;
+            }
+        }
+
+        std::cout << "ERROR: Item with ID " << itemID << " not found.\n";
     }
+
     void sortInventoryItems() override
     {
+        if (vectorItems.empty())
+        {
+            std::cout << "No items available to sort.\n";
+            return;
+        }
+
+        for (size_t i = 0; i < vectorItems.size() - 1; ++i)
+        {
+            for (size_t j = 0; j < vectorItems.size() - i - 1; ++j)
+            {
+                if (vectorItems[j].getName() > vectorItems[j + 1].getName())
+                {
+                    std::swap(vectorItems[j], vectorItems[j + 1]);
+                }
+            }
+        }
+        std::cout << "Items sorted alphabetically by name.\n";
     }
+
     void displayLowStockInventoryItems() override
     {
+        const int LOW_STOCK_THRESHOLD = 5;
+        bool foundLowStock = false;
+
+        std::cout << "\nLow stock items (Quantity <= " << LOW_STOCK_THRESHOLD << "):\n";
+
+        for (const auto &item : vectorItems)
+        {
+            if (item.getQuantity() <= LOW_STOCK_THRESHOLD)
+            {
+                if (!foundLowStock)
+                {
+                    std::cout << "------------------------------------------------------------\n";
+                    std::cout << std::left << std::setw(10) << "ID"
+                              << std::left << std::setw(40) << "Name"
+                              << std::right << std::setw(10) << "Quantity"
+                              << std::right << std::setw(10) << "Price" << "\n";
+                    std::cout << "------------------------------------------------------------\n";
+                    foundLowStock = true;
+                }
+
+                std::cout << std::left << std::setw(10) << item.getItemID()
+                          << std::left << std::setw(40) << item.getName()
+                          << std::right << std::setw(10) << item.getQuantity()
+                          << std::right << std::setw(10) << item.getPrice()
+                          << "\n";
+            }
+        }
+
+        if (!foundLowStock)
+        {
+            std::cout << "No low stock items found.\n";
+        }
+        std::cout << "------------------------------------------------------------\n";
     }
 };
 
-void DisplayMenu()
+int main()
 {
-    InventorySystem inventorySystem;
-    std::string choice;
+    InventorySystem inventory;
+    std::string option;
     bool running = true;
 
     while (running)
     {
-        std::cout << "Menu:\n";
-        std::cout << "1 - Add Item\n";
-        std::cout << "2 - Update Item\n";
-        std::cout << "3 - Remove Item\n";
-        std::cout << "4 - Display Items by Category\n";
-        std::cout << "5 - Display All Items\n";
-        std::cout << "6 - Search Item\n";
-        std::cout << "7 - Sort Items\n";
-        std::cout << "8 - Display Low Stock Items\n";
-        std::cout << "9 - Exit\n";
-        std::cout << "Choose an option: ";
-        std::cin >> choice;
+        SystemClear();
+        std::cout << "\nInventory Management System\n";
+        std::cout << "----------------------------\n";
+        std::cout << "1. Add Item\n";
+        std::cout << "2. Update Item\n";
+        std::cout << "3. Remove Item\n";
+        std::cout << "4. Display All Items\n";
+        std::cout << "5. Search for Item\n";
+        std::cout << "6. Display Items by Category\n";
+        std::cout << "7. Display Low Stock Items\n";
+        std::cout << "8. Sort Items by ID\n";
+        std::cout << "9. Exit\n";
+        std::cout << "Enter option (1-9): ";
+        std::cin >> option;
 
-        if (choice == "1")
+        if (std::cin.fail()) // Check if the input is valid
         {
-            SystemClear();
-            inventorySystem.addInventoryItem();
-           
-        }
-        else if (choice == "2")
-        {
-            SystemClear();
+            std::cin.clear();                                                   // Clear the error flag
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Ignore the rest of the line
+            std::cout << "Invalid input! Please enter a number between 1 and 9.\n";
+            SystemPause();
+            continue; // Restart the loop
         }
 
-        else if (choice == "3")
+        if (option == "1")
         {
-            SystemClear();
+            inventory.addInventoryItem();
         }
-        else if (choice == "4")
+        else if (option == "2")
         {
-            SystemClear();
+            inventory.updateInventoryItem();
         }
-        else if (choice == "5")
+        else if (option == "3")
         {
-            SystemClear();
+            inventory.removeInventoryItem();
         }
-        else if (choice == "6")
+        else if (option == "4")
         {
-            SystemClear();
+            inventory.displayAllInventoryItems();
+            SystemPause();
         }
-        else if (choice == "7")
+        else if (option == "5")
         {
-            SystemClear();
+            inventory.searchInventoryItem();
+            SystemPause();
         }
-        else if (choice == "8")
+        else if (option == "6")
         {
-            SystemClear();
+            inventory.displayCategoryItems();
+            SystemPause();
         }
-        else if (choice == "9")
+        else if (option == "7")
         {
-            SystemClear();
-            std::cout << "Exiting program.\n";
-            running = false;
+            inventory.displayLowStockInventoryItems();
+            SystemPause();
+        }
+        else if (option == "8")
+        {
+            inventory.sortInventoryItems();
+            SystemPause();
+        }
+        else if (option == "9")
+        {
+            std::cout << "Exiting program." << std::endl;
+            running = false; // Set running to false to exit the loop
         }
         else
         {
-
-            std::cin.clear();
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            std::cout << "Invalid choice. Please try again." << std::endl;
+            std::cout << "Invalid option! Please try again.\n";
             SystemPause();
-            SystemClear();
         }
     }
-}
 
-int main()
-{
-    InventorySystem inventorySystem;
-    DisplayMenu();
     return 0;
 }
